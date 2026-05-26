@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Detector - Guardian AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-input: #0f1419;
+            --border-color: #2a3441;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.3);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.3);
+            --warning: #f59e0b;
+            --gradient-1: #3b82f6;
+            --gradient-2: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 80%, var(--gradient-1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, var(--gradient-2) 0%, transparent 50%);
+            animation: bgRotate 30s linear infinite;
+        }
+
+        @keyframes bgRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Grid overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            position: relative;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 0 30px var(--accent-glow);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 30px var(--accent-glow); }
+            50% { box-shadow: 0 0 50px var(--accent-glow); }
+        }
+
+        .logo h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Status badge */
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success-glow);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main card */
+        .main-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+
+        /* Input section */
+        .input-section {
+            margin-bottom: 2rem;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .url-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 1rem 1.25rem;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .url-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .url-input::placeholder {
+            color: #4b5563;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .api-key-input:focus {
+            border-color: var(--accent);
+        }
+
+        .analyze-btn {
+            padding: 1rem 2.5rem;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px var(--accent-glow);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(0);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .analyze-btn.loading .spinner {
+            display: block;
+        }
+
+        .analyze-btn.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results section */
+        .results-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .result-verdict {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .verdict-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            transition: all 0.5s ease;
+        }
+
+        .verdict-icon.safe {
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px solid var(--success);
+            box-shadow: 0 0 30px var(--success-glow);
+        }
+
+        .verdict-icon.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid var(--danger);
+            box-shadow: 0 0 30px var(--danger-glow);
+        }
+
+        .verdict-text h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .verdict-text.safe h2 { color: var(--success); }
+        .verdict-text.danger h2 { color: var(--danger); }
+
+        .verdict-text p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Gauge chart */
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 120px;
+            margin: 0 auto 2rem;
+        }
+
+        .gauge-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 20;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 20;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1s ease, stroke 0.5s ease;
+            transform: rotate(180deg);
+            transform-origin: center;
+        }
+
+        .gauge-value {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .gauge-value .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .gauge-value .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-name {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-bar {
+            height: 4px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            margin-top: 0.75rem;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
+
+        /* Feature breakdown */
+        .features-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .features-title {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .feature-row:last-child {
+            border-bottom: none;
+        }
+
+        .feature-name {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .feature-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-primary);
+            font-size: 0.9rem;
+        }
+
+        .feature-value.highlight {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* History section */
+        .history-section {
+            margin-top: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .history-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .history-url {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .history-badge.safe {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .history-badge.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .history-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .logo h1 {
+                font-size: 1.75rem;
+            }
+
+            .main-card {
+                padding: 1.5rem;
+            }
+
+            .input-wrapper {
+                flex-direction: column;
+            }
+
+            .url-input {
+                min-width: 100%;
+            }
+
+            .analyze-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .result-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🛡️</div>
+                <h1>Guardian AI</h1>
+            </div>
+            <p class="subtitle">Advanced phishing detection powered by machine learning. Analyze URLs in real-time to identify potential threats.</p>
+
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot"></span>
+                    <span>API Online</span>
+                </div>
+                <div class="status-item">
+                    <span>🔒</span>
+                    <span>Secure Connection</span>
+                </div>
+                <div class="status-item">
+                    <span>⚡</span>
+                    <span>Real-time Analysis</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-card">
+            <div class="input-section">
+                <label class="input-label">Target URL</label>
+                <div class="input-wrapper">
+                    <input type="text" class="url-input" id="urlInput" placeholder="https://example.com" autocomplete="off">
+                    <button class="analyze-btn" id="analyzeBtn" onclick="analyzeURL()">
+                        <div class="spinner"></div>
+                        <span class="btn-text">🔍 Analyze</span>
+                    </button>
+                </div>
+                <input type="password" class="api-key-input" id="apiKeyInput" placeholder="Enter API Key (optional - uses default if empty)">
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="result-header">
+                    <div class="result-verdict">
+                        <div class="verdict-icon" id="verdictIcon">⚠️</div>
+                        <div class="verdict-text" id="verdictText">
+                            <h2>Analyzing...</h2>
+                            <p>Processing URL features</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gauge-container">
+                    <svg class="gauge-svg" viewBox="0 0 200 120">
+                        <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                        <path class="gauge-fill" id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" stroke="url(#gaugeGradient)" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+                        <defs>
+                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#10b981"/>
+                                <stop offset="50%" style="stop-color:#f59e0b"/>
+                                <stop offset="100%" style="stop-color:#ef4444"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="gauge-value">
+                        <div class="number" id="gaugeNumber">0%</div>
+                        <div class="label">Threat Level</div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid" id="metricsGrid">
+                    <!-- Metrics will be populated here -->
+                </div>
+
+                <div class="features-section">
+                    <h3 class="features-title">📊 Feature Breakdown</h3>
+                    <div id="featuresList">
+                        <!-- Features will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-section" id="historySection" style="display: none;">
+            <h2 class="section-title">🕒 Recent Scans</h2>
+            <div class="history-list" id="historyList">
+                <!-- History items will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toastIcon">ℹ️</span>
+        <span id="toastMessage">Message</span>
+    </div>
+
+    <script>
+        const API_URL = 'https://phishing-api-j7fs.onrender.com/predict';
+        const DEFAULT_API_KEY = 'The-01guardian-AI-0205-secured-key';
+        let analysisHistory = JSON.parse(localStorage.getItem('phishingHistory') || '[]');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHistory();
+            document.getElementById('urlInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') analyzeURL();
+            });
+        });
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
+
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+
+            toastIcon.textContent = icons[type] || icons.info;
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        async function analyzeURL() {
+            const urlInput = document.getElementById('urlInput');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                showToast('Please enter a URL to analyze', 'warning');
+                urlInput.focus();
+                return;
+            }
+
+            // Basic URL validation
+            let processedUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                processedUrl = 'https://' + url;
+            }
+
+            analyzeBtn.classList.add('loading');
+            analyzeBtn.disabled = true;
+
+            try {
+                const apiKey = apiKeyInput.value.trim() || DEFAULT_API_KEY;
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ url: processedUrl })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Invalid API key');
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                displayResults(data, processedUrl);
+                addToHistory(data, processedUrl);
+                showToast('Analysis complete!', 'success');
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showToast(error.message || 'Failed to analyze URL', 'error');
+
+                // Show demo results if API is not available
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+    showToast('API is currently unavailable. Please try again later.', 'error');
+}
+            } finally {
+                analyzeBtn.classList.remove('loading');
+                analyzeBtn.disabled = false;
+            }
+        }   
+
+        
+        function displayResults(data, url) {
+            const resultsSection = document.getElementById('resultsSection');
+            const verdictIcon = document.getElementById('verdictIcon');
+            const verdictText = document.getElementById('verdictText');
+            const gaugeFill = document.getElementById('gaugeFill');
+            const gaugeNumber = document.getElementById('gaugeNumber');
+            const metricsGrid = document.getElementById('metricsGrid');
+            const featuresList = document.getElementById('featuresList');
+
+            const isPhishing = data.prediction === 'phishing';
+            const threatLevel = data.phishing_probability;
+            const confidence = data.confidence;
+
+            // Update verdict
+            verdictIcon.className = 'verdict-icon ' + (isPhishing ? 'danger' : 'safe');
+            verdictIcon.textContent = isPhishing ? '🚨' : '✅';
+
+            verdictText.className = 'verdict-text ' + (isPhishing ? 'danger' : 'safe');
+            verdictText.querySelector('h2').textContent = isPhishing ? 'Phishing Detected!' : 'URL is Safe';
+            verdictText.querySelector('p').textContent = isPhishing 
+                ? `This URL exhibits suspicious characteristics (${confidence}% confidence)` 
+                : `No significant threats detected (${confidence}% confidence)`;
+
+            // Update gauge
+            const maxDash = 251.2;
+            const offset = maxDash - (threatLevel / 100) * maxDash;
+            gaugeFill.style.strokeDashoffset = offset;
+
+            // Animate number
+            animateNumber(gaugeNumber, 0, threatLevel, 1000, '%');
+
+            // Metrics
+            const metrics = [
+                { name: 'Confidence', value: confidence + '%', icon: '🎯', color: 'var(--accent)', percent: confidence },
+                { name: 'Threat Score', value: threatLevel + '%', icon: '⚡', color: isPhishing ? 'var(--danger)' : 'var(--success)', percent: threatLevel },
+                { name: 'URL Length', value: url.length + ' chars', icon: '📏', color: 'var(--warning)', percent: Math.min(url.length / 2, 100) },
+                { name: 'Risk Level', value: isPhishing ? 'HIGH' : 'LOW', icon: '🛡️', color: isPhishing ? 'var(--danger)' : 'var(--success)', percent: isPhishing ? 80 : 20 }
+            ];
+
+            metricsGrid.innerHTML = metrics.map(m => `
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-name">${m.name}</span>
+                        <div class="metric-icon" style="background: ${m.color}20; color: ${m.color}">${m.icon}</div>
+                    </div>
+                    <div class="metric-value" style="color: ${m.color}">${m.value}</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: 0%; background: ${m.color}; transition: width 1s ease 0.3s"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Animate metric bars
+            setTimeout(() => {
+                document.querySelectorAll('.metric-bar-fill').forEach((bar, i) => {
+                    bar.style.width = metrics[i].percent + '%';
+                });
+            }, 100);
+
+            // Feature breakdown (simulated based on URL analysis)
+            const features = analyzeURLFeatures(url);
+            featuresList.innerHTML = features.map(f => `
+                <div class="feature-row">
+                    <span class="feature-name">${f.name}</span>
+                    <span class="feature-value ${f.highlight ? 'highlight' : ''}">${f.value}</span>
+                </div>
+            `).join('');
+
+            resultsSection.classList.add('visible');
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function analyzeURLFeatures(url) {
+            const features = [];
+            const lowerUrl = url.toLowerCase();
+
+            // Protocol
+            features.push({
+                name: 'Protocol',
+                value: url.startsWith('https') ? 'HTTPS (Secure)' : 'HTTP (Insecure)',
+                highlight: !url.startsWith('https')
+            });
+
+            // Domain analysis
+            try {
+                const urlObj = new URL(url);
+                const domain = urlObj.hostname;
+                const path = urlObj.pathname;
+
+                features.push({
+                    name: 'Domain',
+                    value: domain,
+                    highlight: false
+                });
+
+                // Subdomain depth
+                const parts = domain.split('.');
+                const subdomainDepth = parts.length - 2;
+                features.push({
+                    name: 'Subdomain Depth',
+                    value: subdomainDepth > 0 ? subdomainDepth + ' levels' : 'None',
+                    highlight: subdomainDepth > 2
+                });
+
+                // IP check
+                const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(domain);
+                features.push({
+                    name: 'IP Address',
+                    value: isIP ? 'Yes (Suspicious)' : 'No',
+                    highlight: isIP
+                });
+
+                // Special characters
+                const specialChars = (url.match(/[@_!#$%^&*()<>?/|}{~:]/g) || []).length;
+                features.push({
+                    name: 'Special Characters',
+                    value: specialChars,
+                    highlight: specialChars > 5
+                });
+
+                // Suspicious keywords
+                const suspiciousWords = ['login', 'verify', 'secure', 'account', 'update', 'banking', 'confirm', 'password', 'signin', 'webscr'];
+                const foundWords = suspiciousWords.filter(w => lowerUrl.includes(w));
+                features.push({
+                    name: 'Suspicious Keywords',
+                    value: foundWords.length > 0 ? foundWords.join(', ') : 'None detected',
+                    highlight: foundWords.length > 0
+                });
+
+                // Path length
+                features.push({
+                    name: 'Path Length',
+                    value: path.length + ' characters',
+                    highlight: path.length > 50
+                });
+
+                // Double slash in path
+                const doubleSlash = path.includes('//');
+                features.push({
+                    name: 'Double Slash in Path',
+                    value: doubleSlash ? 'Yes (Suspicious)' : 'No',
+                    highlight: doubleSlash
+                });
+
+            } catch (e) {
+                features.push({ name: 'Parse Error', value: 'Invalid URL format', highlight: true });
+            }
+
+            return features;
+        }
+
+        function animateNumber(element, start, end, duration, suffix = '') {
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                const current = start + (end - start) * easeProgress;
+
+                element.textContent = Math.round(current * 10) / 10 + suffix;
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function addToHistory(data, url) {
+            const item = {
+                url: url,
+                prediction: data.prediction,
+                confidence: data.confidence,
+                timestamp: new Date().toISOString()
+            };
+
+            analysisHistory.unshift(item);
+            if (analysisHistory.length > 10) analysisHistory = analysisHistory.slice(0, 10);
+
+            localStorage.setItem('phishingHistory', JSON.stringify(analysisHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const historySection = document.getElementById('historySection');
+            const historyList = document.getElementById('historyList');
+
+            if (analysisHistory.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+
+            historySection.style.display = 'block';
+            historyList.innerHTML = analysisHistory.map(item => {
+                const isPhishing = item.prediction === 'phishing';
+                const date = new Date(item.timestamp);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="history-item" onclick="document.getElementById('urlInput').value = '${item.url}'">
+                        <span class="history-url" title="${item.url}">${item.url}</span>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="history-badge ${isPhishing ? 'danger' : 'safe'}">${isPhishing ? 'Phishing' : 'Safe'}</span>
+                            <span class="history-time">${timeStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
